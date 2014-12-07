@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/blueprint"
+       xsi:schemaLocation="
+       http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+       http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+
+  
+ <bean id="myDb" class="com.mongodb.Mongo">   
+   <argument>  
+     <bean class="com.mongodb.MongoURI">   
+            <argument index="0" value="mongodb://localhost:27017/cjbot" />   
+        </bean>   
+    </argument>  
+ </bean>
+
+ 
+  <camelContext id="twitter-to-db" streamCache="true" xmlns="http://camel.apache.org/schema/blueprint">
+    <properties>
+      <property key="CamelLogDebugBodyMaxChars" value="50500"/>
+    </properties>
+
+    <dataFormats>
+      <json id="jack" library="Jackson" />
+      <jaxb id="myJaxb" prettyPrint="true" contextPath="org.apache.camel.example"/>
+    </dataFormats>
+
+    <route id="search-to-db">
+      <from uri="vm:search-to-db" />
+      <setHeader headerName="CamelFileName">
+	<simple>searches/${in.header.twitter-search-id}.json</simple>
+      </setHeader>
+      <to uri="vm:tweets-to-db" />
+    </route>
+    
+    <route id="tweets-to-db">
+      <from uri="vm:tweets-to-db" />
+      <split>
+	<simple>${body}</simple>
+	<setHeader headerName="tweet.id">
+	  <simple>${body.id}</simple>
+	</setHeader>
+	<setHeader headerName="user">
+	  <simple>${body.user}</simple>
+	</setHeader>
+	<marshal ref="jack" />
+	<convertBodyTo type="java.lang.String"/>
+	<multicast stopOnException="false">
+	  <to uri="vm:tweet-to-db" />
+	  <to uri="vm:tweet-to-file" />
+	</multicast>
+      </split>
+    </route>
+    
+    <route id="tweet-to-file">
+      <from uri="vm:tweet-to-file" />
+      <marshal ref="jack" />
+      <convertBodyTo type="java.lang.String"/>
+      <transform>
+	<simple>${body}\n</simple>
+      </transform>
+      <to uri="file:twitter-data?autoCreate=true&amp;fileExist=Append" />
+    </route>
+    
+    <route id="tweet-to-db">
+      <from uri="vm:tweet-to-db" />
+      <log message="Saving tweet id= ${body.id}" />
+      <!-- transforming the body (a single tweet) to a json doc -->
+      <marshal ref="jack" />
+      <convertBodyTo type="java.lang.String"/>
+      <setHeader headerName="CamelMongoDbUpsert">
+	<simple>MongoDbConstants.UPSERT</simple>
+      </setHeader>
+      <to uri="mongodb:myDb?database=cjbot&amp;collection=tweets&amp;operation=insert" />
+    </route>
+
+    <route id="user-to-db">
+      <from uri="vm:user-to-db" />
+
+      <log message="Saving user id= ${body.id}" />
+      <!-- transforming the body (a twitter user) to a json doc -->
+      <marshal ref="jack" />
+      <convertBodyTo type="java.lang.String"/>
+      <setHeader headerName="CamelMongoDbUpsert">
+	<simple>MongoDbConstants.UPSERT</simple>
+      </setHeader>
+      <to uri="mongodb:myDb?database=cjbot&amp;collection=users&amp;operation=insert" />
+	  
+    </route>
+	
+  </camelContext>
+</blueprint>
+
