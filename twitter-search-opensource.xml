@@ -1,6 +1,6 @@
 <blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0">
 
-  <camelContext id="twitter-search-pirelli" xmlns="http://camel.apache.org/schema/blueprint">
+  <camelContext id="twitter-search-opensource" xmlns="http://camel.apache.org/schema/blueprint">
     <properties>
       <property key="CamelLogDebugBodyMaxChars" value="50500"/>
     </properties>
