@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/blueprint"
+       xsi:schemaLocation="
+       http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+       http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+
+  <camelContext id="twitter-to-file" streamCache="true" xmlns="http://camel.apache.org/schema/blueprint">
+
+    <dataFormats>
+      <json id="jack" library="Jackson" />
+      <jaxb id="myJaxb" prettyPrint="true" contextPath="org.apache.camel.example"/>
+    </dataFormats>
+
+    <route id="twitter-search-to-file">
+      <from uri="vm:twitter-search-to-file" />
+      <setHeader headerName="CamelFileName">
+         <simple>searches/${in.header.twitter-search-id}</simple>
+      </setHeader>
+      <to uri="vm:twitter-tweets-to-file" />
+    </route>
+    
+    <route id="twitter-timeline-to-file">
+      <from uri="vm:twitter-timeline-to-file" />
+      <setHeader headerName="CamelFileName">
+         <simple>timelines/${in.header.twitter-timeline-id}</simple>
+      </setHeader>
+      <to uri="vm:twitter-tweets-to-file" />
+    </route>
+    
+    <route id="twitter-tweets-to-file">
+      <from uri="vm:twitter-tweets-to-file" />
+      <split>
+    <simple>${body}</simple>
+    <to uri="vm:twitter-tweet-to-file" />
+      </split>
+    </route>
+
+    <route id="twitter-tweet-to-file">
+      <from uri="vm:twitter-tweet-to-file" />
+
+      <log message="Saving tweet id= ${body.id}" />
+      <!-- transforming the body (a single tweet) to a json doc -->
+      <marshal ref="jack" />
+      <convertBodyTo type="java.lang.String" charset="UTF8" />
+      <transform>
+        <simple>${body}\n</simple>
+      </transform>
+      <setHeader headerName="CamelFileName">
+        <simple>${in.header.CamelFileName}/${date:now:yyyy}/${date:now:MM}/${date:now:dd}</simple>
+      </setHeader>
+      <to uri="file:twitter-data?autoCreate=true&amp;fileExist=Append" />
+    </route>
+    
+  </camelContext>
+</blueprint>

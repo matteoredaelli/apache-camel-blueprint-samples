@@ -1,0 +1,30 @@
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0">
+
+  <camelContext id="rss-to-file" xmlns="http://camel.apache.org/schema/blueprint">
+    <dataFormats>
+        <xmljson id="xmljson"/>
+        <xmljson id="xmljsonWithOptions" forceTopLevelObject="true" trimSpaces="true" rootName="newRoot" skipNamespaces="true"
+             removeNamespacePrefixes="true" expandableProperties="d e"/>
+    </dataFormats>
+
+    <route id="rss-to-file">
+      <from uri="vm:rss-to-file" />
+      <marshal> <rss/> </marshal>
+      <transform>
+        <xpath>//item</xpath>
+      </transform>
+      <!-- <marshal ref="xmljson"/> -->
+      <convertBodyTo type="java.lang.String" charset="UTF8" />
+      <transform>
+        <groovy>request.body.replace("\n","")+"\n"</groovy>
+      </transform>
+      <log message="Saving rss data to file" />
+      <setHeader headerName="CamelFileName">
+        <simple>${in.header.rss-source}/${date:now:yyyy}/${date:now:MM}/${date:now:dd}</simple>
+      </setHeader>
+      <to uri="file:rss-data?autoCreate=true&amp;fileExist=Append" />
+    </route>
+
+  </camelContext>
+</blueprint>
+

@@ -1,0 +1,15 @@
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0">
+
+  <camelContext id="rss-google-news-pirelli" xmlns="http://camel.apache.org/schema/blueprint">
+
+    <route id="rss-google-news-pirelli">
+      <from uri="rss:https://news.google.com/?output=rss&amp;q=pirelli&amp;splitEntries=true&amp;feedHeader=false&amp;consumer.delay=43200000" />
+      <setHeader headerName="rss-source">
+        <simple>google-news/pirelli</simple>
+      </setHeader>
+      <to uri="vm:rss-to-file" />
+    </route>
+
+  </camelContext>
+</blueprint>
+
