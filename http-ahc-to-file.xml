@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/blueprint"
+       xsi:schemaLocation="
+       http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+       http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+
+  <camelContext id="test-ahc" streamCache="true" xmlns="http://camel.apache.org/schema/blueprint">
+
+    <route>
+      <from uri="timer://foo?repeatCount=1"/>
+      <to uri="direct:start"/>
+    </route>
+    <route>
+      <from uri="direct:start"/>
+      <setHeader headerName="Exchange.HTTP_METHOD">
+        <constant>HEAD</constant>
+      </setHeader>
+      <setHeader headerName="Exchange.HTTP_URI">
+        <constant>http://t.co/R2GE6IbrQL</constant>
+      </setHeader>
+      <to uri="ahc:http://changeme?throwExceptionOnFailure=false&amp;clientConfig.maxRequestRetry=3&amp;clientConfig.followRedirect=fa
+lse"/>
+      <log message="header location: ${headers.location}" />
+      <log message="header Content-Type: ${headers.Content-Type}" />
+      <log message="header ${headers}" />
+      <to uri="file:///tmp/" />
+    </route> 
+  </camelContext>
+</blueprint>
+
